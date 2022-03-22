@@ -3,12 +3,12 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = 8080;
 
-const urlDatabase = {
+let urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 }
 
-function generateRandomString() {
+const generateRandomString = () => {
   let randomString = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let x = 0; x < 6; x++) {
@@ -36,8 +36,9 @@ app.get('/urls/:shortURL', (req,res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  let randomString = generateRandomString();
+  urlDatabase[randomString] = req.body.longURL;
+  res.redirect(`/urls/${randomString}`);
 });
 
 app.listen(PORT, () => {
