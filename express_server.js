@@ -4,21 +4,17 @@ const express = require('express');
 const app = express();
 app.set('view engine', 'ejs');
 
-//COOKIES
+//MIDDLEWARE
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
-
-//MIDDLEWARE
-app.use(bodyParser.urlencoded({extended: true}));
-
-//READ BODY
 const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({extended: true}));
 
 //SHORT URLS AND CORRESPONDING LONG URLS
 let urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
-}
+};
 
 //FUNCTION TO CREATE A SHORT URL STRING
 const generateRandomString = () => {
