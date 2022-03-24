@@ -3,6 +3,7 @@ const PORT = 8080;
 const express = require('express');
 const app = express();
 app.set('view engine', 'ejs');
+const bcrypt = require('bcryptjs');
 
 //MIDDLEWARE
 const cookieParser = require('cookie-parser');
@@ -110,7 +111,9 @@ app.post('/login', (req,res) => {
       currentKey = key;
     }
   }
-  if (currentKey && users[currentKey].password === req.body.password && usersHasEmail(users, req.body.email)) {
+  const hashedPassword = users[currentKey].password;
+  let passwordsMatch = bcrypt.compareSync(req.body.password, hashedPassword);
+  if (currentKey && passwordsMatch && usersHasEmail(users, req.body.email)) {
     res.cookie('user_id', currentKey)
   } else {
     res.statusCode = 403;
@@ -161,10 +164,12 @@ app.post('/register', (req,res) => {
   } else {
     const userObjSize = Object.keys(users).length;
     const currentID = `user${userObjSize + 1}ID`;
+    const password = req.body.password;
+    const hashPassword = bcrypt.hashSync(password, 10);
     users[currentID] = {
       id: currentID,
       email: req.body.email,
-      password: req.body.password
+      password: hashPassword
     };
     res.cookie('user_id', currentID);
   }
