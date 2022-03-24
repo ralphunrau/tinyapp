@@ -4,19 +4,18 @@ const express = require('express');
 const app = express();
 app.set('view engine', 'ejs');
 const bcrypt = require('bcryptjs');
+const { usersHasEmail, generateRandomString } = require('./helpers.js');
 
 //MIDDLEWARE
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+const cookieSession = require('cookie-session');
+app.use(cookieSession({
+  name: 'session',
+  keys: ['userID']
+}));
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
 
-//SHORT URLS AND CORRESPONDING LONG URL OBJECT
-/* let urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-}; */
-
+//STORES THE USER DATA
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -32,135 +31,128 @@ const urlDatabase = {
   }
 };
 
-//FUNCTION TO RETURN USER SPECIFIC URLS
-function urlsForUser(id) {
-  let usersURLs = {};
-  for (const key in urlDatabase) {
-    if (id === urlDatabase[key].userID) {
-      usersURLs[key] = urlDatabase[key];
-    }
-  }
-  return usersURLs;
-};
-
-//USER OBJECT
+//USER OBJECT INITIALIZATION
 let users = {
   
-}
-
-//FUNCTION TO CREATE A SHORT URL STRING
-const generateRandomString = () => {
-  let randomString = '';
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let x = 0; x < 6; x++) {
-    randomString += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return randomString;
-};
-
-//FUNCTION TO LOOKUP AN EMAIL
-const usersHasEmail = (userObj, specificEmail) => {
-  for (const key in userObj) {
-    if (userObj[key].email === specificEmail) {
-      return true;
-    }
-  }
-  return false;
 };
 
 //GET ROUTES
+
+//HOME PAGE
+app.get('/', (req,res) => {
+  const templateVars = { urls: urlDatabase, users, user: req.session.userID};
+  res.redirect('/urls');
+});
+
+//URL PAGE IF USER IS LOGGED IN
 app.get('/urls', (req,res) => {
-  const templateVars = { urls: urlDatabase, users, user: req.cookies['user_id']};
+  const templateVars = { urls: urlDatabase, users, user: req.session.userID};
   res.render('urls_index', templateVars);
 });
 
+//NEW URL PAGE IF USER IS LOGGED IN
 app.get('/urls/new', (req,res) => {
-  const templateVars = { users, user: req.cookies['user_id'] };
+  const templateVars = { users, user: req.session.userID };
   if (templateVars.user) {
     res.render('urls_new', templateVars);
   } else {
-    res.redirect('/urls');
+    res.redirect('/login');
   }
 });
 
+//SHORT URL EDIT PAGE
 app.get('/urls/:shortURL', (req,res) => {
-  const templateVars = { urls: urlDatabase, shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, users, user: req.cookies['user_id'] };
+  const templateVars = { urls: urlDatabase, shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, users, user: req.session.userID };
   res.render('urls_show', templateVars);
 });
 
+//LONG URL STORED IN SHORT URL
 app.get('/u/:shortURL', (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
+//RENDERING THE REGISTER PAGE
 app.get('/register', (req,res) => {
-  const templateVars = { users, user: req.cookies['user_id'] };
+  const templateVars = { users, user: req.session.userID };
   res.render('register', templateVars);
 });
 
+//RENDERING THE LOGIN PAGE
 app.get('/login', (req,res) => {
-  const templateVars = { users, user: req.cookies['user_id'] };
-  res.render('login', templateVars)
+  const templateVars = { users, user: req.session.userID };
+  res.render('login', templateVars);
 });
 
 //POST ROUTES
-app.post('/login', (req,res) => { 
+
+//LOGIN PAGE IF USER IS NOT LOGGED IN
+app.post('/login', (req,res) => {
+  //INITIALIZING CURRENTKEY TO SPECIFY THE DESIRED USER
   let currentKey;
   for (const key in users) {
-    if(req.body.email === users[key].email) {
+    if (req.body.email === users[key].email) {
       currentKey = key;
     }
   }
-  const hashedPassword = users[currentKey].password;
-  let passwordsMatch = bcrypt.compareSync(req.body.password, hashedPassword);
-  if (currentKey && passwordsMatch && usersHasEmail(users, req.body.email)) {
-    res.cookie('user_id', currentKey)
+  //USING CURRENTKEY TO RETRIEVE INFO ABOUT LOGIN
+  if (users[currentKey]) {
+    const hashedPassword = users[currentKey].password;
+    const passwordsMatch = bcrypt.compareSync(req.body.password, hashedPassword);
+    if (currentKey && passwordsMatch && usersHasEmail(req.body.email, users)) {
+      req.session.userID = currentKey;
+    } else {
+      res.statusCode = 403;
+    }
   } else {
     res.statusCode = 403;
   }
   res.redirect('/urls');
 });
 
+//LOGGING OUT DELETES COOKIES
 app.post('/logout', (req,res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/urls');
 });
 
+//DELETES A SHORT URL LINK
 app.post('/urls/:shortURL/delete', (req,res) => {
-  if (req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) {
+  if (req.session.userID === urlDatabase[req.params.shortURL].userID) {
     delete urlDatabase[req.params.shortURL];
-    console.log('2')
   }
-  console.log('1')
   res.redirect("/urls");
 });
 
+//ADDS A NEW URL IF USER IS LOGGED IN
 app.post('/urls/:id', (req,res) => {
-  if (req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) {
+  if (req.session.userID === urlDatabase[req.params.id].userID) {
     urlDatabase[req.params.id].longURL = req.body.longURL;
-    console.log('4')
   }
-  console.log('3')
   res.redirect("/urls");
 });
 
+//CREATES A NEW SHORT URL-LONG URL PAIR IF USER IS LOGGED IN
 app.post("/urls", (req, res) => {
-  if (req.cookies['user_id']) {
-    res.render('urls_new', templateVars);
+  const templateVars = { users, user: req.session.userID };
+  if (req.session.userID) {
+    const randomString = generateRandomString();
+    urlDatabase[randomString] = { longURL: req.body.longURL, userID: req.session.userID };
+    res.redirect(`/urls/${randomString}`);
   } else {
     res.redirect('/urls');
-    return;
   }
-  let randomString = generateRandomString();
-  urlDatabase[randomString] = req.body.longURL;
-  res.redirect(`/urls/${randomString}`);
 });
 
+//REGISTERS A NEW ACCOUNT IF USER DOESNT ALREADY HAVE ONE
 app.post('/register', (req,res) => {
+  //IF INPUT FIELDS ARE BLANK
   if (req.body.email === '' || req.body.password === '') {
     res.statusCode = 400;
-  } else if (usersHasEmail(users, req.body.email)) {
+    //IF EMAIL ALREADY EXISTS
+  } else if (usersHasEmail(req.body.email, users)) {
     res.statusCode = 400;
+    //IF EMAIL DOES NOT EXIST
   } else {
     const userObjSize = Object.keys(users).length;
     const currentID = `user${userObjSize + 1}ID`;
@@ -171,7 +163,7 @@ app.post('/register', (req,res) => {
       email: req.body.email,
       password: hashPassword
     };
-    res.cookie('user_id', currentID);
+    req.session.userID = currentID;
   }
   res.redirect('/urls');
 });
