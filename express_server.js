@@ -12,21 +12,21 @@ app.use(cookieSession({
   name: 'session',
   keys: ['userID']
 }));
-const bodyParser = require("body-parser");
+const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({extended: true}));
 
 //STORES THE USER DATA
 const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
+  'b6UTxQ': {
+    longURL: 'https://www.tsn.ca',
     userID: 'user1ID'
   },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
+  'i3BoGr': {
+    longURL: 'https://www.google.ca',
     userID: 'user1ID'
   },
   '8fdg43': {
-    longURL: "https://www.google.ca",
+    longURL: 'https://www.google.ca',
     userID: 'user2ID'
   }
 };
@@ -36,7 +36,7 @@ let users = {
   
 };
 
-//GET ROUTES
+//ROUTES
 
 //HOME PAGE
 app.get('/', (req,res) => {
@@ -66,16 +66,38 @@ app.get('/urls/:shortURL', (req,res) => {
   res.render('urls_show', templateVars);
 });
 
+//DELETES A SHORT URL LINK
+app.post('/urls/:shortURL/delete', (req,res) => {
+  if (req.session.userID === urlDatabase[req.params.shortURL].userID) {
+    delete urlDatabase[req.params.shortURL];
+  }
+  res.redirect('/urls');
+});
+
 //LONG URL STORED IN SHORT URL
 app.get('/u/:shortURL', (req, res) => {
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
 
-//RENDERING THE REGISTER PAGE
-app.get('/register', (req,res) => {
+//CREATES A NEW SHORT URL-LONG URL PAIR IF USER IS LOGGED IN
+app.post('/urls', (req, res) => {
   const templateVars = { users, user: req.session.userID };
-  res.render('register', templateVars);
+  if (req.session.userID) {
+    const randomString = generateRandomString();
+    urlDatabase[randomString] = { longURL: req.body.longURL, userID: req.session.userID };
+    res.redirect(`/urls/${randomString}`);
+  } else {
+    res.redirect('/urls');
+  }
+});
+
+//ADDS A NEW URL IF USER IS LOGGED IN
+app.post('/urls/:id', (req,res) => {
+  if (req.session.userID === urlDatabase[req.params.id].userID) {
+    urlDatabase[req.params.id].longURL = req.body.longURL;
+  }
+  res.redirect('/urls');
 });
 
 //RENDERING THE LOGIN PAGE
@@ -84,7 +106,11 @@ app.get('/login', (req,res) => {
   res.render('login', templateVars);
 });
 
-//POST ROUTES
+//RENDERING THE REGISTER PAGE
+app.get('/register', (req,res) => {
+  const templateVars = { users, user: req.session.userID };
+  res.render('register', templateVars);
+});
 
 //LOGIN PAGE IF USER IS NOT LOGGED IN
 app.post('/login', (req,res) => {
@@ -110,40 +136,6 @@ app.post('/login', (req,res) => {
   res.redirect('/urls');
 });
 
-//LOGGING OUT DELETES COOKIES
-app.post('/logout', (req,res) => {
-  req.session = null;
-  res.redirect('/urls');
-});
-
-//DELETES A SHORT URL LINK
-app.post('/urls/:shortURL/delete', (req,res) => {
-  if (req.session.userID === urlDatabase[req.params.shortURL].userID) {
-    delete urlDatabase[req.params.shortURL];
-  }
-  res.redirect("/urls");
-});
-
-//ADDS A NEW URL IF USER IS LOGGED IN
-app.post('/urls/:id', (req,res) => {
-  if (req.session.userID === urlDatabase[req.params.id].userID) {
-    urlDatabase[req.params.id].longURL = req.body.longURL;
-  }
-  res.redirect("/urls");
-});
-
-//CREATES A NEW SHORT URL-LONG URL PAIR IF USER IS LOGGED IN
-app.post("/urls", (req, res) => {
-  const templateVars = { users, user: req.session.userID };
-  if (req.session.userID) {
-    const randomString = generateRandomString();
-    urlDatabase[randomString] = { longURL: req.body.longURL, userID: req.session.userID };
-    res.redirect(`/urls/${randomString}`);
-  } else {
-    res.redirect('/urls');
-  }
-});
-
 //REGISTERS A NEW ACCOUNT IF USER DOESNT ALREADY HAVE ONE
 app.post('/register', (req,res) => {
   //IF INPUT FIELDS ARE BLANK
@@ -167,6 +159,15 @@ app.post('/register', (req,res) => {
   }
   res.redirect('/urls');
 });
+
+//LOGGING OUT DELETES COOKIES
+app.post('/logout', (req,res) => {
+  req.session = null;
+  res.redirect('/urls');
+});
+
+
+
 
 //SERVER CONSTRUCTOR
 app.listen(PORT, () => {
