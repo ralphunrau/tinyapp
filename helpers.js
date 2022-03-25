@@ -17,4 +17,22 @@ const generateRandomString = () => {
   return randomString;
 };
 
-module.exports = { usersHasEmail, generateRandomString };
+//FUNCTION TO VALIDATE USER TO CREATE A NEW SHORTURL
+const createUrlIfLogged = (user) => {
+  if (user) {
+    const randomString = generateRandomString();
+    urlDatabase[randomString] = { longURL: req.body.longURL, userID: user };
+    return res.redirect(`/urls/${randomString}`);
+  } else {
+    return res.redirect('/urls');
+  }
+};
+
+//FUNCTION TO VALIDATE USER TO LOAD A URL IF LOGGED IN
+const loadUrlIfLogged = (user) => {
+  if (user === urlDatabase[req.params.id].userID) {
+    urlDatabase[req.params.id].longURL = req.body.longURL;
+  }
+};
+
+module.exports = { usersHasEmail, generateRandomString, createUrlIfLogged, loadUrlIfLogged};

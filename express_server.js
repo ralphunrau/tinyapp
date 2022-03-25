@@ -4,7 +4,7 @@ const express = require('express');
 const app = express();
 app.set('view engine', 'ejs');
 const bcrypt = require('bcryptjs');
-const { usersHasEmail, generateRandomString } = require('./helpers.js');
+const { usersHasEmail, generateRandomString, createUrlIfLogged, loadUrlIfLogged } = require('./helpers.js');
 
 //MIDDLEWARE
 const cookieSession = require('cookie-session');
@@ -83,20 +83,12 @@ app.get('/u/:shortURL', (req, res) => {
 //CREATES A NEW SHORT URL-LONG URL PAIR IF USER IS LOGGED IN
 app.post('/urls', (req, res) => {
   const templateVars = { users, user: req.session.userID };
-  if (req.session.userID) {
-    const randomString = generateRandomString();
-    urlDatabase[randomString] = { longURL: req.body.longURL, userID: req.session.userID };
-    res.redirect(`/urls/${randomString}`);
-  } else {
-    res.redirect('/urls');
-  }
+  createUrlIfLogged(req.session.userID);
 });
 
 //ADDS A NEW URL IF USER IS LOGGED IN
 app.post('/urls/:id', (req,res) => {
-  if (req.session.userID === urlDatabase[req.params.id].userID) {
-    urlDatabase[req.params.id].longURL = req.body.longURL;
-  }
+  loadUrlIfLogged(req.session.userID);
   res.redirect('/urls');
 });
 
@@ -165,9 +157,6 @@ app.post('/logout', (req,res) => {
   req.session = null;
   res.redirect('/urls');
 });
-
-
-
 
 //SERVER CONSTRUCTOR
 app.listen(PORT, () => {
