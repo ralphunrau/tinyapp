@@ -15,20 +15,9 @@ app.use(cookieSession({
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({extended: true}));
 
-//STORES THE USER DATA
+//INITIALIZING THE USER DATA
 const urlDatabase = {
-  'b6UTxQ': {
-    longURL: 'https://www.tsn.ca',
-    userID: 'user0ID'
-  },
-  'i3BoGr': {
-    longURL: 'https://www.google.ca',
-    userID: 'user0ID'
-  },
-  '8fdg43': {
-    longURL: 'https://www.google.ca',
-    userID: 'user1ID'
-  }
+
 };
 
 //USER OBJECT INITIALIZATION
