@@ -28,8 +28,21 @@
               <td><%= urls[url].longURL %></td>
               <td><form method="GET" action="/urls/<%= url %>"><button type="submit">Edit</button></form></td>
               <td><form method="POST" action="/urls/<%= url %>/delete"><button type="submit">Delete</button></form></td>
+              <% } } %>
+              <tr>
+              <td><%= 'b6UTxQ' %></td>
+              <td><%= urls['b6UTxQ'].longURL %></td>
+              <td><form method="GET" action="/urls/b6UTxQ"><button type="submit">Edit</button></form></td>
+              <td><form method="POST" action="/urls/b6UTxQ/delete"><button type="submit">Delete</button></form></td>
+              </tr>
+              <tr>
+              <td><%= 'i3BoGr' %></td>
+              <td><%= urls['i3BoGr'].longURL %></td>
+              <td><form method="GET" action="/urls/i3BoGr"><button type="submit">Edit</button></form></td>
+              <td><form method="POST" action="/urls/i3BoGr/delete"><button type="submit">Delete</button></form></td>
+              </tr>
             </tr>
-          <% } } } %> 
+          <% } %> 
         </tbody>
       </table>
       </main>

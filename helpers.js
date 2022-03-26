@@ -18,21 +18,32 @@ const generateRandomString = () => {
 };
 
 //FUNCTION TO VALIDATE USER TO CREATE A NEW SHORTURL
-const createUrlIfLogged = (user) => {
+const createUrlIfLogged = (user, urlDatabase, req, res) => {
   if (user) {
     const randomString = generateRandomString();
     urlDatabase[randomString] = { longURL: req.body.longURL, userID: user };
-    return res.redirect(`/urls/${randomString}`);
+    res.redirect(`/urls/${randomString}`);
   } else {
-    return res.redirect('/urls');
+    res.redirect('/urls');
   }
 };
 
-//FUNCTION TO VALIDATE USER TO LOAD A URL IF LOGGED IN
-const loadUrlIfLogged = (user) => {
-  if (user === urlDatabase[req.params.id].userID) {
-    urlDatabase[req.params.id].longURL = req.body.longURL;
+//FUNCITON TO REDIRECT TO LOGIN IF TRYING TO ACCESS URLS WITHOUT AN ACCOUNT
+const redirectTologin = (user, redirectToPage, res, templateVars) => {
+  if (user) {
+    res.render(redirectToPage, templateVars);
+  } else {
+    res.redirect('/login');
   }
 };
 
-module.exports = { usersHasEmail, generateRandomString, createUrlIfLogged, loadUrlIfLogged};
+//IF USER IS LOGGED IN
+const userIsLogged = (user, render, res, templateVars) => {
+  if (user) {
+    res.redirect('/urls');
+  } else {
+    res.render(render, templateVars);
+  }
+};
+
+module.exports = { usersHasEmail, generateRandomString, createUrlIfLogged, redirectTologin, userIsLogged};
